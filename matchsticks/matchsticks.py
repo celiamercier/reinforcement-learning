@@ -5,14 +5,14 @@ from pprint import PrettyPrinter
 from writer import Writer
 import sys
 
-def train(nbSticks, nbGames, plotValueFunction, players, debugMode = False):
+def train(nbSticks, nbGames, plotQFunction, players, debugMode = False):
     writer = Writer() if debugMode else None
     game = Game(nbSticks, players, { ConfigKey.TRAIN: True, ConfigKey.DEBUG: debugMode })
 
     # stats for trained players
-    valueFunctionStats = {}
+    qFunctionStats = {}
     for p in (p for p in players if type(p) is TrainedPlayer):
-        valueFunctionStats[p] = dict((i, []) for i in range(1, nbSticks + 1))
+        qFunctionStats[p] = dict((i, ([], [], [])) for i in range(1, nbSticks + 1))
 
     print("\nTraining...")
     for i in range(0, nbGames):
@@ -25,9 +25,11 @@ def train(nbSticks, nbGames, plotValueFunction, players, debugMode = False):
             writer.endGame(game.players[0], game.players[1])
 
         # update stats
-        for p in valueFunctionStats:
-            for s,v in p.v.items():
-                valueFunctionStats[p][s].append(v)
+        for p in qFunctionStats:
+            for s,q in p.q.items():
+                qFunctionStats[p][s][0].append(q[0])
+                qFunctionStats[p][s][1].append(q[1])
+                qFunctionStats[p][s][2].append(q[2])
 
         # decrease exploration over time
         if i % 10 == 0:
@@ -41,10 +43,10 @@ def train(nbSticks, nbGames, plotValueFunction, players, debugMode = False):
 
     for p in (p for p in players if type(p) is TrainedPlayer):
         print(f'\n=== Value function of {p}: ===')
-        PrettyPrinter().pprint(p.v)
+        PrettyPrinter().pprint(p.q)
 
-    if plotValueFunction:
-        plot(valueFunctionStats)
+        if plotQFunction:
+            plot(qFunctionStats[p])
 
 def test(nbSticks, nbGames, players):
     game = Game(nbSticks, players)
@@ -76,17 +78,18 @@ def askUserConfiguration():
     testSize = ask(f'How many test iterations (1000) ? > ', 1000, int)
     e = ask(f'Epsilon (0.99) ? > ', 0.99, float)
     lr = ask(f'Leaning Rate (0.001) ? > ', 0.001, float)
+    g = ask(f'Gamma (0.8) ? > ', 0.8, float)
     plotValueFunction = ask(f'Plot value function (y|n) ? > ', False, bool)
-    return (nbSticks, trainSize, testSize, e, lr, plotValueFunction)
+    return (nbSticks, trainSize, testSize, e, lr, g, plotValueFunction)
 
 def ask(question, defaultValue, f):
     s = input(question)
     if s:
-        return f(s)
+        return f(s.strip().lower())
     return defaultValue
 
 def bool(s):
-    if s.lower() == 'y':
+    if s == 'y':
         return True
     else:
         return False
@@ -97,14 +100,14 @@ def bool(s):
 
 debugMode = True if len(sys.argv) > 1 and sys.argv[1].strip().lower() == "debug" else False
 
-(nbSticks, trainSize, testSize, e, lr, plotValueFunction) = askUserConfiguration()
+(nbSticks, trainSize, testSize, e, lr, g, plotQFunction) = askUserConfiguration()
 
-trainedPlayer1 = TrainedPlayer('trainedPlayer1', nbSticks, e, lr)
-trainedPlayer2 = TrainedPlayer('trainedPlayer2', nbSticks, e, lr)
+trainedPlayer1 = TrainedPlayer('trainedPlayer1', nbSticks, e, lr, g)
+trainedPlayer2 = TrainedPlayer('trainedPlayer2', nbSticks, e, lr, g)
 randomPlayer = RandomPlayer('randomPlayer')
 
 # Train IA
-train(nbSticks, trainSize, plotValueFunction, [trainedPlayer1, trainedPlayer2], debugMode)
+train(nbSticks, trainSize, plotQFunction, [trainedPlayer1, trainedPlayer2], debugMode)
 
 # Test IA against other player
 test(nbSticks, testSize, [trainedPlayer1, randomPlayer])

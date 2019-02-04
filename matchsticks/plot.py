@@ -1,36 +1,30 @@
+from math import ceil
 import matplotlib.pyplot as plt
 import matplotlib
 import colorsys
 
 def plot(values, f = (lambda k,v: True)):
-    i = 1
-    for p,v in values.items():
-        plt.subplot(1, len(values), i)
-        __subplot(v, f)
-        i += 1
+    cols = 4
+    rows = ceil(len(values) / cols)
 
-    plt.xlabel('Time')
-    plt.ylabel('Value function')
-    plt.title('Value function over time')
-    plt.legend()
+    i = 1
+    for s,q in values.items():
+        if f(s, q):
+            plt.subplot(rows, cols, i, title = f'State {s}')
+            __subplot(q)
+        i += 1
+        
     plt.show()
 
-def __subplot(values, f = (lambda k,v: True)):
+def __subplot(values):
     # compute x values
-    x = []
-    for y in values.values():
-        x = range(0, len(y))
-        break
+    x = range(0, len(values[0]))
 
-    # colors
-    filteredValues = dict((v for v in values.items() if f(v[0], v[1])))
-    colors = __colors(len(filteredValues))
-
-    # plot y values with given color
-    i = 0
-    for label, y in filteredValues.items():
-        plt.plot(x, y, color = colors[i], label = label)
-        i += 1
+    # plot y values
+    plt.plot(x, values[0], label = 'a1')
+    plt.plot(x, values[1], label = 'a2')
+    plt.plot(x, values[2], label = 'a3')
+    plt.legend()
 
 def __colors(n):
     colors = []

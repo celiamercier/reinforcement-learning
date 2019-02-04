@@ -34,18 +34,19 @@ class Game:
         while self.nbSticks > 0:
             self.__display()
 
-            r = self.__move(self.__getCurrentPlayer(turn, p1, p2))
+            player = self.__getCurrentPlayer(turn, p1, p2)
+
+            r = self.__move(player)
             if r != 0: # current player lost
                 self.__getOpponentPlayer(turn, p1, p2).reward(r * -1)
 
+            self.__train(player, False) # train on previous action
             turn += 1
 
         # end of the game
         winner = self.__getCurrentPlayer(turn, p1, p2)
+        self.__train(winner, True)
         self.__print(f'\n{winner} wins !')
-
-        # train players
-        self.__train()
 
         return winner
 
@@ -60,10 +61,9 @@ class Game:
         player.reward(r)
         return r
 
-    def __train(self):
+    def __train(self, player, end):
         if self.config.get(ConfigKey.TRAIN):
-            for p in self.players:
-                p.train()
+            player.update(end)
 
     def __display(self):
         if self.config.get(ConfigKey.LOG):
